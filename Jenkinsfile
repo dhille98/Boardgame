@@ -33,14 +33,42 @@ pipeline {
                 sh "trivy fs --format table -o trivy-fs-report.html ."
             }
         }
-        stage('sonar-QUBE') {
+        
+        
+        stage('Build') {
             steps {
-                withSonarQubeEnv(credentialsId: 'sonar-cloud', installationName: 'sonar-scanner') { // You can override the credential to be used
-                sh 'mvn clean package sonar:sonar -Dsonar.host.url=http://34.125.183.239:9000/ -Dsonar.projectKey=build-game'}
-
+                script {
+                    echo "Building Docker image with tag: $IMAGE_TAG"
+                    sh 'docker build -t $DOCKERHUB_REPO:$IMAGE_TAG .'
+                }
             }
         }
-        
+        stage('Login to Docker Hub') {
+            steps {
+                script {
+                    docker.withRegistry('', DOCKERHUB_CREDENTIALS) {
+                        echo "Logged in to Docker Hub"
+                    }
+                }
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                script {
+                    docker.withRegistry('', DOCKERHUB_CREDENTIALS) {
+                        sh 'docker push $DOCKERHUB_REPO:$IMAGE_TAG'
+                    }
+                }
+            }
+        }
+        stage(''){
+            steps {
+               withKubeConfig(caCertificate: '', clusterName: 'kind-kind-2', contextName: '', credentialsId: 'k8-cred', namespace: 'webapps', restrictKubeConfigAccess: false, serverUrl: 'https://127.0.0.1:46473') {
+               sh ' kubectl apply -f deployment.yml'
+       } 
+            }
+        }
 
         
        
