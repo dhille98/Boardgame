@@ -40,14 +40,7 @@ pipeline {
 
             }
         }
-        stage('Build') {
-            steps {
-                script {
-                    echo "Building Docker image with tag: $IMAGE_TAG"
-                    sh 'docker build -t $DOCKERHUB_REPO:$IMAGE_TAG .'
-                }
-            }
-        }
+        
 
         
        
