@@ -1,0 +1,60 @@
+trigger:
+  - dev
+
+pool:
+  name: default
+
+stages:
+  - stage: maven
+    displayName: boardgame
+    jobs:
+      - job: build
+        steps:
+          - task: UseJavaVersion@1
+            inputs:
+              versionSpec: '11'
+              jdkArchitectureOption: 'x64'
+              jdkSourceOption: 'PreInstalled'
+
+          - task: SonarQubePrepare@5
+            inputs:
+              SonarQube: 'sonar-crd'
+              scannerMode: 'CLI'
+              configMode: 'file'
+              configFile: 'sonar-project.properties'
+              extraProperties: |
+                sonar.projectKey=Boardgame
+                sonar.projectName=Boardgame
+                sonar.projectVersion=1.0
+                sonar.sources=src/main/java
+                sonar.tests=src/test/java
+                sonar.java.binaries=target/classes
+                sonar.junit.reportPaths=target/surefire-reports
+
+          - task: Maven@4
+            inputs:
+              mavenPOMFile: 'pom.xml'
+              goals: 'clean package'
+              options: '-B'
+              publishJUnitResults: true
+              testResultsFiles: '**/surefire-reports/TEST-*.xml'
+              javaHomeOption: 'JDKVersion'
+              mavenVersionOption: 'Default'
+              mavenAuthenticateFeed: true
+              effectivePomSkip: false
+
+          - task: CopyFiles@2
+            inputs:
+              contents: '**/target/*.jar'
+              targetFolder: $(Build.ArtifactStagingDirectory)
+
+          - task: PublishBuildArtifacts@1
+            inputs:
+              pathToPublish: $(Build.ArtifactStagingDirectory)
+              artifactName: MyBuildOutputs
+
+          - task: SonarQubeAnalyze@5
+
+          - task: SonarQubePublish@5
+            inputs:
+              pollingTimeoutSec: '300'
